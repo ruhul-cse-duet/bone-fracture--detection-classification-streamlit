@@ -2,11 +2,10 @@ import os
 import warnings
 from pathlib import Path
 
-#import cv2
 import numpy as np
 import torch
 import torch.nn as nn
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 from torchvision import models, transforms
 from ultralytics import YOLO
 
@@ -14,12 +13,12 @@ warnings.filterwarnings('ignore')
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-
 _cached_models = {
     'yolo': None,
     'classifier': None,
 }
 
+# ---------- Helper Functions ----------
 
 def _get_project_root() -> Path:
     return Path(__file__).resolve().parents[1]
@@ -64,6 +63,7 @@ _inference_transform = transforms.Compose([
     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
 ])
 
+# ---------- Core Function ----------
 
 def run_detection_and_classification(pil_image: Image.Image, conf_threshold: float = 0.25):
     yolo_model = _load_yolo_model()
@@ -73,35 +73,57 @@ def run_detection_and_classification(pil_image: Image.Image, conf_threshold: flo
     if pil_image.mode != 'RGB':
         pil_image = pil_image.convert('RGB')
 
-    # Run YOLO detection
+    # YOLO Detection
     results = yolo_model.predict(source=np.array(pil_image), conf=conf_threshold, verbose=False)
 
-    annotated = np.array(pil_image).copy()
+    annotated = pil_image.copy()
+    draw = ImageDraw.Draw(annotated)
     detections = []
+
     if len(results) > 0 and hasattr(results[0], 'boxes') and results[0].boxes is not None:
         for b in results[0].boxes:
             xyxy = b.xyxy.cpu().numpy().astype(int)[0]
             score = float(b.conf.cpu().numpy()[0]) if b.conf is not None else 0.0
             cls_id = int(b.cls.cpu().numpy()[0]) if b.cls is not None else -1
+
             detections.append({'bbox': xyxy.tolist(), 'score': score, 'class_id': cls_id})
             x1, y1, x2, y2 = xyxy
-            cv2.rectangle(annotated, (x1, y1), (x2, y2), (0, 255, 0), 2)
+
+            # ✅ Draw rectangle
+            draw.rectangle([x1, y1, x2, y2], outline=(0, 255, 0), width=3)
+
+            # ✅ Draw text label
             label = f"{score:.2f}"
-            cv2.putText(annotated, label, (x1, max(0, y1 - 5)), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
+            try:
+                font = ImageFont.truetype("arial.ttf", 16)
+            except:
+                font = ImageFont.load_default()
+
+            # ✅ Fix: Pillow 10+ uses textbbox instead of textsize
+            try:
+                bbox = draw.textbbox((0, 0), label, font=font)
+                text_width, text_height = bbox[2] - bbox[0], bbox[3] - bbox[1]
+            except AttributeError:
+                text_width, text_height = font.getsize(label)
+
+            text_bg = [x1, max(0, y1 - text_height - 4), x1 + text_width + 4, y1]
+            draw.rectangle(text_bg, fill=(0, 255, 0))
+            draw.text((x1 + 2, max(0, y1 - text_height - 2)), label, fill=(255, 255, 255), font=font)
 
     # Classification
     image_tensor = _inference_transform(pil_image).unsqueeze(0).to(device)
     with torch.no_grad():
         prob = float(clf_model(image_tensor).item())
+
     # Binary label: 1 -> Fractured, 0 -> Non-Fractured
     threshold = 0.5
     predicted = 1 if prob >= threshold else 0
     confidence = prob if predicted == 1 else 1.0 - prob
 
-    return annotated, predicted, confidence, detections
+    annotated_np = np.array(annotated)
+    return annotated_np, predicted, confidence, detections
 
 
 def prediction_img(pil_image: Image.Image):
-    # Backward-compat wrapper used by existing app code (will be updated)
     annotated, predicted, confidence, detections = run_detection_and_classification(pil_image)
     return annotated, predicted, confidence
