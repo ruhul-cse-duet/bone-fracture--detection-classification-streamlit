@@ -155,7 +155,7 @@ elif(app_mode=="analysis"):
             st.session_state['pred_label'] = pred_label
 
             with col2:
-                st.image(annotated_img.resize((300,300)), caption=f"Detection + Prediction: {pred_label} ({conf:.2f})", width=300)
+                st.image(annotated_img.resize((500,400)), caption=f"Detection + Prediction: {pred_label} ({conf:.2f})", width=500)
 
     st.markdown("""
             <div class="footer">For education/demo only. Not for clinical use.</div>
