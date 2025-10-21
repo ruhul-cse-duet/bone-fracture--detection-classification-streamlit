@@ -7,7 +7,7 @@ import torch
 import torch.nn as nn
 from PIL import Image, ImageDraw, ImageFont
 from torchvision import models, transforms
-#from ultralytics import YOLO
+from ultralytics import YOLO
 
 warnings.filterwarnings('ignore')
 
