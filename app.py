@@ -94,7 +94,7 @@ if(app_mode == "home"):
         import os
         sample_image_path = "test_img/image1_145_png.rf.a69d928d011a93d25a95b7b8380ea25d.jpg"
         if os.path.exists(sample_image_path):
-            st.image(sample_image_path, caption="Example X-ray Image", width='stretch')
+            st.image(sample_image_path, caption="Example X-ray Image", width=500)
         else:
             st.info("Sample image not found. Use the Analysis page to upload an image.")
 
