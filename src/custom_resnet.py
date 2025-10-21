@@ -7,7 +7,7 @@ import torch
 import torch.nn as nn
 from PIL import Image, ImageDraw, ImageFont
 from torchvision import models, transforms
-from ultralytics import YOLO
+#from ultralytics import YOLO
 
 warnings.filterwarnings('ignore')
 
@@ -18,16 +18,32 @@ _cached_models = {
     'classifier': None,
 }
 
+def _ensure_cv2_headless():
+    try:
+        import cv2  # noqa
+    except Exception as e:
+        raise ImportError(
+            "cv2 import failed. Ensure `opencv-python-headless` is in requirements.txt "
+            "and there is no conflicting opencv installed. Original: " + str(e)
+        )
+
+
 # ---------- Helper Functions ----------
 
 def _get_project_root() -> Path:
     return Path(__file__).resolve().parents[1]
 
 
-def _load_yolo_model() -> YOLO:
+def _load_yolo_model():
     if _cached_models['yolo'] is not None:
         return _cached_models['yolo']
-    weights_path = _get_project_root() / 'models' / 'yolov11_trained.pt'
+    # guarded imports
+    _ensure_cv2_headless()
+    try:
+        from ultralytics import YOLO
+    except Exception as e:
+        raise RuntimeError("Failed to import ultralytics. Check requirements and Python version. " + str(e))
+    weights_path = Path(__file__).resolve().parents[1] / 'models' / 'yolov11_trained.pt'
     model = YOLO(str(weights_path))
     _cached_models['yolo'] = model
     return model
