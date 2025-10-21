@@ -35,7 +35,7 @@ def _get_project_root() -> Path:
 
 
 def _load_yolo_model():
-    weights_path = Path("models/yolov11_trained_cpu.pt")
+    weights_path = _get_project_root() / "models" / "yolov11_trained_cpu.pt"
     try:
         model = YOLO(str(weights_path))
     except Exception as e:
