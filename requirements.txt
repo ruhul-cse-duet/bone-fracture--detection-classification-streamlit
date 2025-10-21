@@ -1,8 +1,9 @@
 streamlit
+duckdb>=0.10.0
+opencv-python-headless==4.12.0.88
 ultralytics==8.3.217
-#opencv-python==4.12.0.88
 torch>=2.7.1
 torchvision>=0.22.1
-Pillow
+Pillow>=11.3.0
 numpy>=1.26.0
 
