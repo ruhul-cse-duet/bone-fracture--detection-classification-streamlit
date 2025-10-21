@@ -41,10 +41,18 @@ def _load_yolo_model():
     except Exception as e:
         import torch
         print("⚠️ GPU model load failed, retrying on CPU:", e)
-        ckpt = torch.load(weights_path, map_location='cpu')
-        model = YOLO()
-        model.model.load_state_dict(ckpt['model'].float().state_dict())
+        try:
+            ckpt = torch.load(weights_path, map_location='cpu')
+            model = YOLO()
+            if 'model' in ckpt:
+                model.model.load_state_dict(ckpt['model'].float().state_dict(), strict=False)
+            else:
+                model.model.load_state_dict(ckpt, strict=False)
+        except Exception as inner_e:
+            print("❌ Failed to load YOLO model:", inner_e)
+            raise RuntimeError("YOLO model could not be loaded in CPU mode.")
     return model
+
 
 
 def _load_classifier_model() -> torch.nn.Module:
