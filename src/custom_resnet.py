@@ -35,17 +35,15 @@ def _get_project_root() -> Path:
 
 
 def _load_yolo_model():
-    if _cached_models['yolo'] is not None:
-        return _cached_models['yolo']
-    # guarded imports
-    _ensure_cv2_headless()
+    weights_path = Path("models/yolov11_trained.pt")
     try:
-        from ultralytics import YOLO
+        model = YOLO(str(weights_path))
     except Exception as e:
-        raise RuntimeError("Failed to import ultralytics. Check requirements and Python version. " + str(e))
-    weights_path = Path(__file__).resolve().parents[1] / 'models' / 'yolov11_trained.pt'
-    model = YOLO(str(weights_path))
-    _cached_models['yolo'] = model
+        import torch
+        print("⚠️ GPU model load failed, retrying on CPU:", e)
+        ckpt = torch.load(weights_path, map_location='cpu')
+        model = YOLO()
+        model.model.load_state_dict(ckpt['model'].float().state_dict())
     return model
 
 
