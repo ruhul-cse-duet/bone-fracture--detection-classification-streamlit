@@ -1,4 +1,4 @@
-#opencv-python-headless==4.12.0.88
+opencv-python-headless==4.12.0.88
 ultralytics==8.3.217
 torch>=2.7.1
 torchvision>=0.22.1
